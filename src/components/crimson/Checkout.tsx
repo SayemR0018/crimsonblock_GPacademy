@@ -10,15 +10,44 @@ import { launchPixelConfetti } from "./PixelConfetti";
 
 const UNIT_PRICE = 9999;
 
+// 8-bit adaptation of the bKash bird emblem — pure pixel rects, magenta/pink palette.
+function BkashBird() {
+  const M = "#e2136e"; // signature magenta
+  const P = "#ff4d94"; // highlight pink
+  const D = "#8a0a3f"; // shadow
+  // 10x10 grid of 3px cells → 30x30 icon
+  const map: (string | null)[][] = [
+    [null, null, M, M, null, null, null, null, null, null],
+    [null, M, P, M, M, null, null, null, null, null],
+    [M, P, P, M, M, M, null, null, M, null],
+    [M, P, P, P, M, M, M, M, M, null],
+    [D, M, P, P, P, M, M, M, null, null],
+    [null, D, M, P, P, M, M, null, null, null],
+    [null, null, D, M, M, M, null, null, null, null],
+    [null, null, D, M, M, null, null, null, null, null],
+    [null, null, null, D, null, null, null, null, null, null],
+    [null, null, null, null, null, null, null, null, null, null],
+  ];
+  return (
+    <svg viewBox="0 0 30 30" width="30" height="30" shapeRendering="crispEdges" aria-hidden>
+      {map.flatMap((row, y) =>
+        row.map((c, x) =>
+          c ? <rect key={`${x}-${y}`} x={x * 3} y={y * 3} width="3" height="3" fill={c} /> : null,
+        ),
+      )}
+    </svg>
+  );
+}
+
 const PAYMENTS: PixelRadioOption<PaymentMethod>[] = [
   {
     value: "bkash",
     label: "bKash",
     sublabel: "Mobile financial services · instant",
-    accent: "var(--bkash)",
+    accent: "#e2136e",
     icon: (
-      <span className="font-pixel text-[10px] text-bone bg-[color:var(--bkash)] px-2 py-1 border-[3px] border-obsidian">
-        bK
+      <span className="inline-flex items-center justify-center bg-bone p-1 border-[3px] border-obsidian">
+        <BkashBird />
       </span>
     ),
   },
@@ -60,6 +89,7 @@ export function Checkout() {
   const [cardNumber, setCardNumber] = useState("");
   const [expiry, setExpiry] = useState("");
   const [cvc, setCvc] = useState("");
+  const [trxId, setTrxId] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [order, setOrder] = useState<Order | null>(null);
 
@@ -82,6 +112,10 @@ export function Checkout() {
       if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiry.trim())) e.expiry = "Format MM/YY.";
       if (!/^\d{3,4}$/.test(cvc.trim())) e.cvc = "3–4 digits.";
     }
+    if (method === "bkash") {
+      if (!trxId.trim()) e.trxId = "bKash Transaction ID required.";
+      else if (!/^[A-Za-z0-9]{6,20}$/.test(trxId.trim())) e.trxId = "6–20 letters/digits, no spaces.";
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -101,6 +135,7 @@ export function Checkout() {
       code: discount?.code ?? null,
       percent: discount?.percent ?? 0,
       total: totals.grandTotal,
+      trxId: method === "bkash" ? trxId.trim().toUpperCase() : null,
       ts: Date.now(),
     };
     addOrder(o);
@@ -117,6 +152,7 @@ export function Checkout() {
     setCardNumber("");
     setExpiry("");
     setCvc("");
+    setTrxId("");
     setMethod("bkash");
     clearDiscount();
     setErrors({});
@@ -189,6 +225,29 @@ export function Checkout() {
                   onChange={setMethod}
                   options={PAYMENTS}
                 />
+                {method === "bkash" && (
+                  <div
+                    className="mt-4 bg-obsidian p-4 flex flex-col gap-3 border-[3px]"
+                    style={{ borderColor: "#e2136e", boxShadow: "4px 4px 0 0 rgba(0,0,0,0.5)" }}
+                  >
+                    <div className="font-pixel text-[9px] uppercase tracking-widest" style={{ color: "#ff4d94" }}>
+                      ◆ bKash Confirmation
+                    </div>
+                    <PixelInput
+                      label="bKash Transaction ID"
+                      name="trxId"
+                      value={trxId}
+                      onChange={(e) => setTrxId(e.target.value.toUpperCase())}
+                      error={errors.trxId}
+                      maxLength={20}
+                      placeholder="e.g., TRX10293847"
+                      autoComplete="off"
+                    />
+                    <p className="font-mono text-[10px] text-bone/50 leading-relaxed">
+                      Send ৳{totals.grandTotal.toLocaleString()} to <span className="text-bone">01XXX-XXXXXX</span> · paste the TrxID above.
+                    </p>
+                  </div>
+                )}
                 {method === "card" && (
                   <div className="mt-4 bg-obsidian border-[3px] border-bone/40 p-4 flex flex-col gap-4">
                     <PixelInput

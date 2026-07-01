@@ -55,10 +55,10 @@ export function Game({ gender, onGameOver }: Props) {
     let player = { y: GROUND_Y - 16, vy: 0, onGround: true };
     const obstacles: Obstacle[] = [];
     const collectibles: Collectible[] = [];
-    let obstacleTimer = 60;
+    let obstacleTimer = 90;
     let collectibleTimer = 90;
     let frame = 0;
-    let speed = 3.2;
+    let speed = 1.92; // 40% reduction from original 3.2
     let alive = true;
     let paused = false;
 
@@ -111,8 +111,9 @@ export function Game({ gender, onGameOver }: Props) {
           const w = kind === "block" ? 16 : 12;
           const h = kind === "block" ? 16 : 16;
           obstacles.push({ x: W + 20, kind, w, h });
-          obstacleTimer = 60 + Math.floor(Math.random() * 60) - Math.min(30, Math.floor(stateRef.current.score / 60));
-          obstacleTimer = Math.max(28, obstacleTimer);
+          // wider spacing — avoids unavoidable combos
+          obstacleTimer = 110 + Math.floor(Math.random() * 90) - Math.min(40, Math.floor(stateRef.current.score / 80));
+          obstacleTimer = Math.max(75, obstacleTimer);
         }
         for (const o of obstacles) o.x -= speed;
         while (obstacles.length && obstacles[0].x + obstacles[0].w < -4) obstacles.shift();
@@ -143,12 +144,12 @@ export function Game({ gender, onGameOver }: Props) {
           }
         }
 
-        // collide
+        // collide — forgiving hitbox: tight around torso only
         for (const o of obstacles) {
-          const px1 = 12, px2 = 12 + 12; // slight hitbox forgiveness
-          const py1 = player.y + 3, py2 = player.y + 16;
-          const ox1 = o.x + 1, ox2 = o.x + o.w - 1;
-          const oy1 = GROUND_Y - o.h, oy2 = GROUND_Y;
+          const px1 = 14, px2 = 14 + 8;
+          const py1 = player.y + 5, py2 = player.y + 15;
+          const ox1 = o.x + 3, ox2 = o.x + o.w - 3;
+          const oy1 = GROUND_Y - o.h + 2, oy2 = GROUND_Y;
           if (px1 < ox2 && px2 > ox1 && py1 < oy2 && py2 > oy1) {
             alive = false;
             const finalScore = stateRef.current.score;
@@ -158,7 +159,7 @@ export function Game({ gender, onGameOver }: Props) {
 
         // score over time
         if (frame % 6 === 0) stateRef.current.score += 1;
-        if (frame % 240 === 0) speed = Math.min(6.5, speed + 0.25);
+        if (frame % 300 === 0) speed = Math.min(3.9, speed + 0.15);
       }
 
       // render

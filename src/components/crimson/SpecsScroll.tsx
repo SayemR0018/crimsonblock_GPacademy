@@ -1,6 +1,5 @@
-import { useRef } from "react";
-import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
-import brickImg from "@/assets/brick.png";
+import { useEffect, useRef } from "react";
+import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { PixelCard } from "./ui/PixelCard";
 
 const SPECS = [
@@ -8,30 +7,69 @@ const SPECS = [
     tag: "MATERIAL",
     title: "100% Organic Earth-Forged Terracotta",
     body: "Sourced from a single, undisclosed alluvial bed. Fired for 72 continuous hours in an obsidian kiln.",
+    at: 0.25,
   },
   {
     tag: "GEOMETRY",
     title: "Ergonomic 8×4×2.25 Geometric Form Factor",
     body: "The canonical proportions. Refined to the millimetre. A weight in the hand that reminds you of consequence.",
+    at: 0.55,
   },
   {
     tag: "LEGACY",
     title: "Resistant to Trends. Forged for Eternity.",
     body: "It will outlast your apartment, your city, and the algorithm that recommended it to you.",
+    at: 0.85,
   },
-];
+] as const;
 
 export function SpecsScroll() {
   const ref = useRef<HTMLElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const targetTimeRef = useRef(0);
+  const rafRef = useRef<number | null>(null);
   const prefersReduced = useReducedMotion();
+
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start start", "end end"],
   });
 
-  const rotateY = useTransform(scrollYProgress, [0, 1], prefersReduced ? [0, 0] : [0, 360]);
-  const rotateX = useTransform(scrollYProgress, [0, 1], prefersReduced ? [0, 0] : [-10, 15]);
-  const scale = useTransform(scrollYProgress, [0, 0.5, 1], [0.9, 1.15, 1]);
+  // Smooth scrub loop — updates currentTime with lerp, avoids React re-renders.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    let cancelled = false;
+
+    const tick = () => {
+      if (cancelled) return;
+      const v = videoRef.current;
+      if (v && v.duration && !Number.isNaN(v.duration)) {
+        const current = v.currentTime;
+        const target = targetTimeRef.current;
+        const diff = target - current;
+        // snap when close, else lerp for buttery scrub
+        if (Math.abs(diff) < 0.02) {
+          v.currentTime = target;
+        } else {
+          v.currentTime = current + diff * 0.25;
+        }
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      cancelled = true;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+
+  useMotionValueEvent(scrollYProgress, "change", (p) => {
+    const v = videoRef.current;
+    if (!v || !v.duration || Number.isNaN(v.duration)) return;
+    const clamped = Math.min(0.999, Math.max(0, p));
+    targetTimeRef.current = clamped * v.duration;
+  });
 
   return (
     <section
@@ -41,10 +79,34 @@ export function SpecsScroll() {
       style={{ height: "300vh" }}
     >
       <div className="sticky top-0 h-screen flex items-center justify-center overflow-hidden">
-        {/* grid backdrop */}
+        {/* Scrubbable background video */}
+        <video
+          ref={videoRef}
+          src="/specs-transition.mp4"
+          muted
+          playsInline
+          preload="auto"
+          disablePictureInPicture
+          crossOrigin="anonymous"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          style={{ filter: "contrast(1.05) saturate(1.1)" }}
+          onLoadedMetadata={() => {
+            const v = videoRef.current;
+            if (v) v.currentTime = 0;
+          }}
+        />
+        {/* Vignette + grid overlays */}
         <div
           aria-hidden
-          className="absolute inset-0 opacity-[0.06] pointer-events-none"
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(ellipse at center, transparent 40%, rgba(7,7,10,0.85) 100%)",
+          }}
+        />
+        <div
+          aria-hidden
+          className="absolute inset-0 opacity-[0.05] pointer-events-none"
           style={{
             backgroundImage:
               "linear-gradient(var(--bone) 1px, transparent 1px), linear-gradient(90deg, var(--bone) 1px, transparent 1px)",
@@ -57,76 +119,75 @@ export function SpecsScroll() {
           <div className="font-mono text-[10px] md:text-[11px] uppercase tracking-widest text-gold">
             § 02 — Specifications
           </div>
-          <h2 className="font-pixel text-bone text-lg md:text-3xl mt-2">
+          <h2 className="font-pixel text-bone text-lg md:text-3xl mt-2 drop-shadow-[2px_2px_0_rgba(0,0,0,0.9)]">
             The Anatomy of a Foundation
           </h2>
         </div>
 
-        {/* Brick */}
-        <div className="relative" style={{ perspective: "1000px" }}>
-          <motion.img
-            src={brickImg}
-            alt=""
-            width={512}
-            height={512}
-            style={{ rotateX, rotateY, scale, willChange: "transform" }}
-            className="pixelated w-[220px] sm:w-[320px] md:w-[420px] h-auto drop-shadow-[0_25px_0_rgba(0,0,0,0.6)]"
-          />
-          <div
-            aria-hidden
-            className="absolute -inset-20 -z-10 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(circle, var(--crimson) 0%, transparent 55%)",
-              opacity: 0.35,
-              filter: "blur(30px)",
-            }}
-          />
-        </div>
-
         {/* Spec cards */}
-        {SPECS.map((spec, i) => {
-          const starts = [0.15, 0.45, 0.72];
-          const ends = [0.32, 0.62, 0.9];
-          const start = starts[i];
-          const end = ends[i];
-          const opacity = useTransform(
-            scrollYProgress,
-            [Math.max(0, start - 0.05), start, end, Math.min(1, end + 0.08)],
-            [0, 1, 1, 0],
-          );
-          const y = useTransform(scrollYProgress, [Math.max(0, start - 0.05), start], [30, 0]);
-          const side = i % 2 === 0 ? "left" : "right";
-          return (
-            <motion.div
-              key={spec.tag}
-              style={{ opacity, y, willChange: "transform, opacity" }}
-              className={`absolute z-10 w-[86%] md:w-[360px] ${
-                side === "left"
-                  ? "left-4 md:left-16 bottom-16 md:bottom-24"
-                  : "right-4 md:right-16 top-24 md:top-32"
-              }`}
-            >
-              <PixelCard tone="gold" className="p-5 md:p-6">
-                <div className="font-pixel text-[10px] text-gold uppercase tracking-widest mb-3">
-                  ◆ {spec.tag}
-                </div>
-                <div className="font-pixel text-[13px] md:text-[15px] leading-[1.5] text-bone">
-                  {spec.title}
-                </div>
-                <p className="mt-3 font-mono text-[12px] leading-relaxed text-bone/70">
-                  {spec.body}
-                </p>
-              </PixelCard>
-            </motion.div>
-          );
-        })}
+        {SPECS.map((spec, i) => (
+          <SpecCard
+            key={spec.tag}
+            spec={spec}
+            side={i % 2 === 0 ? "left" : "right"}
+            progress={scrollYProgress}
+            reduced={!!prefersReduced}
+          />
+        ))}
 
         {/* Scroll cue */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 font-pixel text-[9px] text-bone/40 uppercase tracking-widest">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 font-pixel text-[9px] text-bone/60 uppercase tracking-widest z-20">
           ↓ Scroll ↓
         </div>
       </div>
     </section>
+  );
+}
+
+function SpecCard({
+  spec,
+  side,
+  progress,
+  reduced,
+}: {
+  spec: (typeof SPECS)[number];
+  side: "left" | "right";
+  progress: ReturnType<typeof useScroll>["scrollYProgress"];
+  reduced: boolean;
+}) {
+  const start = spec.at;
+  const holdEnd = Math.min(1, start + 0.15);
+  const fadeOut = Math.min(1, start + 0.22);
+  const opacity = useTransform(
+    progress,
+    [Math.max(0, start - 0.08), start, holdEnd, fadeOut],
+    reduced ? [1, 1, 1, 1] : [0, 1, 1, 0],
+  );
+  const y = useTransform(
+    progress,
+    [Math.max(0, start - 0.08), start],
+    reduced ? [0, 0] : [40, 0],
+  );
+  return (
+    <motion.div
+      style={{ opacity, y, willChange: "transform, opacity" }}
+      className={`absolute z-10 w-[86%] md:w-[380px] ${
+        side === "left"
+          ? "left-4 md:left-16 bottom-16 md:bottom-24"
+          : "right-4 md:right-16 top-24 md:top-32"
+      }`}
+    >
+      <PixelCard tone="gold" className="p-5 md:p-6 bg-obsidian/85 backdrop-blur-[2px]">
+        <div className="font-pixel text-[10px] text-gold uppercase tracking-widest mb-3">
+          ◆ {spec.tag}
+        </div>
+        <div className="font-pixel text-[13px] md:text-[15px] leading-[1.5] text-bone">
+          {spec.title}
+        </div>
+        <p className="mt-3 font-mono text-[12px] leading-relaxed text-bone/80">
+          {spec.body}
+        </p>
+      </PixelCard>
+    </motion.div>
   );
 }
