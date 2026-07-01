@@ -89,6 +89,7 @@ export function Checkout() {
   const [cardNumber, setCardNumber] = useState("");
   const [expiry, setExpiry] = useState("");
   const [cvc, setCvc] = useState("");
+  const [trxId, setTrxId] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [order, setOrder] = useState<Order | null>(null);
 
