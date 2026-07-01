@@ -1,11 +1,18 @@
 # 🟥 The Crimson Block — Premium Cyber-Luxury E-Commerce
 
-[![Live Demo](https://img.shields.io/badge/Live-Demo-crimson?style=for-the-badge)](https://crimsonblock.lovable.app/)
-[![Built with Lovable](https://img.shields.io/badge/Built%20with-Lovable-blue?style=for-the-badge)](https://lovable.dev)
-<img src="01JHQEE2XPJ15MQQ4D5KNSV7CP.png" alt="Grameenphone Academy Assignment" height="28" style="vertical-align: middle; margin-left: 4px;" />
+<p align="left">
+  <a href="https://crimsonblock.lovable.app/" target="_blank">
+    <img src="https://img.shields.io/badge/Live-Demo-crimson?style=for-the-badge" height="28" style="vertical-align: middle;" />
+  </a>
+  <a href="https://lovable.dev" target="_blank">
+    <img src="https://img.shields.io/badge/Built%20with-Lovable-blue?style=for-the-badge" height="28" style="vertical-align: middle; margin-left: 4px;" />
+  </a>
+  <a href="https://www.grameenphone.academy" target="_blank">
+    <img src="https://img.shields.io/badge/ASSIGNMENT-Grameenphone%20Academy-white?style=for-the-badge&labelColor=555555" height="28" style="vertical-align: middle; margin-left: 4px;" />
+  </a>
+</p>
 
-> **EST. MMXXVI · LIMITED SERIES**  
-> One brick. Hand-fired in obsidian kilns. Sold as a monument, not a material. For those who understand that scarcity is the last true luxury.
+> **EST. MMXXVI · LIMITED SERIES** > One brick. Hand-fired in obsidian kilns. Sold as a monument, not a material. For those who understand that scarcity is the last true luxury.
 
 ---
 
