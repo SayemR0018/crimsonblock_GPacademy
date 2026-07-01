@@ -89,7 +89,7 @@ export function SpecsScroll() {
           disablePictureInPicture
           crossOrigin="anonymous"
           className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-          style={{ filter: "contrast(1.05) saturate(1.1)" }}
+          style={{ filter: "contrast(1.05) saturate(1.1)", willChange: "contents" }}
           onLoadedMetadata={() => {
             const v = videoRef.current;
             if (v) v.currentTime = 0;
