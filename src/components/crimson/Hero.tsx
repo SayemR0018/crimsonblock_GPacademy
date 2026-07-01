@@ -104,8 +104,8 @@ export function Hero() {
           <div className="absolute -top-2 left-0 font-pixel text-[10px] text-bone/40">
             [ SPEC-001 ]
           </div>
-          <div className="absolute bottom-4 right-0 font-pixel text-[10px] text-gold">
-            ◆ AUTHENTIC ◆
+          <div className="absolute -bottom-4 right-0 md:right-2">
+            <FomoCountdown />
           </div>
         </div>
       </div>
