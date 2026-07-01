@@ -72,7 +72,8 @@ export function SpecsScroll() {
     };
   }, []);
 
-  // Dynamic lerp scrubbing loop — interpolatedPlaybackTime → video.currentTime.
+  // Decoupled rAF lerp scrub — respects the video's `seeking` state so we
+  // never stack un-rendered seek requests (root cause of MP4 scrub stutter).
   useEffect(() => {
     let cancelled = false;
     const tick = () => {
@@ -80,12 +81,16 @@ export function SpecsScroll() {
       const v = videoRef.current;
       if (v && v.duration && !Number.isNaN(v.duration)) {
         const target = targetTimeRef.current;
-        // interpolatedPlaybackTime += (targetPlaybackTime - interpolatedPlaybackTime) * 0.12
-        currentTimeRef.current += (target - currentTimeRef.current) * 0.12;
+        // Tight linear interpolation (0.1) — smoothed frame position.
+        currentTimeRef.current += (target - currentTimeRef.current) * 0.1;
         if (Math.abs(target - currentTimeRef.current) < 0.004) {
           currentTimeRef.current = target;
         }
-        if (Math.abs(v.currentTime - currentTimeRef.current) > 0.016) {
+        // Seeking Lock: only issue a new seek when the decoder is idle.
+        if (
+          !v.seeking &&
+          Math.abs(v.currentTime - currentTimeRef.current) > 0.02
+        ) {
           try {
             v.currentTime = currentTimeRef.current;
           } catch {
@@ -101,6 +106,7 @@ export function SpecsScroll() {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, []);
+
 
   return (
     <section
