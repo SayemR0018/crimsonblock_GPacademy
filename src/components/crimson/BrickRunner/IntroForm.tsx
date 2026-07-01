@@ -7,9 +7,8 @@ interface Props {
 }
 
 const OPTIONS: { value: Gender; label: string; desc: string }[] = [
-  { value: "builder", label: "Builder", desc: "Hard hat. Steady hands." },
-  { value: "adventurer", label: "Adventurer", desc: "Sun-worn. Fearless." },
-  { value: "neutral", label: "Neutral", desc: "Timeless. Undefined." },
+  { value: "builder", label: "Crimson Vanguard", desc: "Forged in fire. Male archetype." },
+  { value: "adventurer", label: "Obsidian Operative", desc: "Silent, precise. Female archetype." },
 ];
 
 export function IntroForm({ onStart }: Props) {
