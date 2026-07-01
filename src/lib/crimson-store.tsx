@@ -12,6 +12,7 @@ export type Order = {
   code: string | null;
   percent: number;
   total: number;
+  trxId?: string | null;
   ts: number;
 };
 
