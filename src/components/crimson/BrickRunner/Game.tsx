@@ -264,13 +264,17 @@ export function Game({ gender, onGameOver }: Props) {
       // update react score display (throttled)
       if (frame % 6 === 0) setDisplayScore(stateRef.current.score);
 
-      rafRef.current = requestAnimationFrame(loop);
+      // Only re-queue if this loop wasn't cancelled externally (unmount / game-over halt).
+      if (rafRef.current !== null) {
+        rafRef.current = requestAnimationFrame(loop);
+      }
     }
 
     rafRef.current = requestAnimationFrame(loop);
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
       window.removeEventListener("keydown", onKey);
       canvas.removeEventListener("pointerdown", onPointer);
       document.removeEventListener("visibilitychange", onVis);
