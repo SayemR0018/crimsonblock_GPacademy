@@ -103,9 +103,9 @@ export function Game({ gender, onGameOver }: Props) {
         }
 
         // scroll
-        scrollFar = (scrollFar + speed * 0.15) % W;
-        scrollMid = (scrollMid + speed * 0.4) % W;
-        scrollNear = (scrollNear + speed) % 16;
+        scrollFar = (scrollFar + SPEED * 0.15) % W;
+        scrollMid = (scrollMid + SPEED * 0.4) % W;
+        scrollNear = (scrollNear + SPEED) % 16;
 
         // spawn obstacles
         obstacleTimer--;
@@ -114,11 +114,10 @@ export function Game({ gender, onGameOver }: Props) {
           const w = kind === "block" ? 16 : 12;
           const h = kind === "block" ? 16 : 16;
           obstacles.push({ x: W + 20, kind, w, h });
-          // wider spacing — avoids unavoidable combos
-          obstacleTimer = 110 + Math.floor(Math.random() * 90) - Math.min(40, Math.floor(stateRef.current.score / 80));
-          obstacleTimer = Math.max(75, obstacleTimer);
+          // wider spacing — avoids unavoidable combos. Constant across runs.
+          obstacleTimer = 110 + Math.floor(Math.random() * 90);
         }
-        for (const o of obstacles) o.x -= speed;
+        for (const o of obstacles) o.x -= SPEED;
         while (obstacles.length && obstacles[0].x + obstacles[0].w < -4) obstacles.shift();
 
         // spawn collectibles
@@ -129,7 +128,7 @@ export function Game({ gender, onGameOver }: Props) {
           collectibles.push({ x: W + 20, y: GROUND_Y - 16 - yOff, kind });
           collectibleTimer = 70 + Math.floor(Math.random() * 90);
         }
-        for (const c of collectibles) c.x -= speed;
+        for (const c of collectibles) c.x -= SPEED;
         while (collectibles.length && (collectibles[0].taken || collectibles[0].x < -12))
           collectibles.shift();
 
@@ -156,13 +155,18 @@ export function Game({ gender, onGameOver }: Props) {
           if (px1 < ox2 && px2 > ox1 && py1 < oy2 && py2 > oy1) {
             alive = false;
             const finalScore = stateRef.current.score;
+            // Halt the RAF loop immediately so no leftover frames leak into the next run.
+            if (rafRef.current) {
+              cancelAnimationFrame(rafRef.current);
+              rafRef.current = null;
+            }
             setTimeout(() => onGameOver(finalScore), 700);
+            return;
           }
         }
 
-        // score over time
+        // score over time — pace locked, no speed ramp.
         if (frame % 6 === 0) stateRef.current.score += 1;
-        if (frame % 300 === 0) speed = Math.min(3.9, speed + 0.15);
       }
 
       // render
