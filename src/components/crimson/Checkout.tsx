@@ -112,6 +112,10 @@ export function Checkout() {
       if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiry.trim())) e.expiry = "Format MM/YY.";
       if (!/^\d{3,4}$/.test(cvc.trim())) e.cvc = "3–4 digits.";
     }
+    if (method === "bkash") {
+      if (!trxId.trim()) e.trxId = "bKash Transaction ID required.";
+      else if (!/^[A-Za-z0-9]{6,20}$/.test(trxId.trim())) e.trxId = "6–20 letters/digits, no spaces.";
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   }
