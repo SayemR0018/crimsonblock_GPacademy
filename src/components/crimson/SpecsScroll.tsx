@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { PixelCard } from "./ui/PixelCard";
 
 const SPECS = [
@@ -27,6 +27,7 @@ export function SpecsScroll() {
   const ref = useRef<HTMLElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const targetTimeRef = useRef(0);
+  const currentTimeRef = useRef(0);
   const rafRef = useRef<number | null>(null);
   const prefersReduced = useReducedMotion();
 
@@ -35,24 +36,50 @@ export function SpecsScroll() {
     offset: ["start start", "end end"],
   });
 
-  // Smooth scrub loop — updates currentTime with lerp, avoids React re-renders.
+  // Passive scroll listener → derives targetTime from viewport-relative section progress.
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    let cancelled = false;
+    const section = ref.current;
+    if (!section) return;
 
+    const updateTarget = () => {
+      const v = videoRef.current;
+      if (!v || !v.duration || Number.isNaN(v.duration)) return;
+      const rect = section.getBoundingClientRect();
+      const total = rect.height - window.innerHeight;
+      if (total <= 0) return;
+      const raw = -rect.top / total;
+      const p = Math.min(0.999, Math.max(0, raw));
+      targetTimeRef.current = p * v.duration;
+    };
+
+    updateTarget();
+    window.addEventListener("scroll", updateTarget, { passive: true });
+    window.addEventListener("resize", updateTarget, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", updateTarget);
+      window.removeEventListener("resize", updateTarget);
+    };
+  }, []);
+
+  // Lerp rAF loop — liquid-smooth video scrub, no React re-renders.
+  useEffect(() => {
+    let cancelled = false;
     const tick = () => {
       if (cancelled) return;
       const v = videoRef.current;
       if (v && v.duration && !Number.isNaN(v.duration)) {
-        const current = v.currentTime;
         const target = targetTimeRef.current;
-        const diff = target - current;
-        // snap when close, else lerp for buttery scrub
-        if (Math.abs(diff) < 0.02) {
-          v.currentTime = target;
-        } else {
-          v.currentTime = current + diff * 0.25;
+        currentTimeRef.current += (target - currentTimeRef.current) * 0.1;
+        if (Math.abs(target - currentTimeRef.current) < 0.004) {
+          currentTimeRef.current = target;
+        }
+        // Only write when the delta is meaningful — avoids decoder thrash.
+        if (Math.abs(v.currentTime - currentTimeRef.current) > 0.016) {
+          try {
+            v.currentTime = currentTimeRef.current;
+          } catch {
+            /* seek races on some browsers; ignore */
+          }
         }
       }
       rafRef.current = requestAnimationFrame(tick);
@@ -64,13 +91,6 @@ export function SpecsScroll() {
     };
   }, []);
 
-  useMotionValueEvent(scrollYProgress, "change", (p) => {
-    const v = videoRef.current;
-    if (!v || !v.duration || Number.isNaN(v.duration)) return;
-    const clamped = Math.min(0.999, Math.max(0, p));
-    targetTimeRef.current = clamped * v.duration;
-  });
-
   return (
     <section
       id="specifications"
@@ -79,34 +99,65 @@ export function SpecsScroll() {
       style={{ height: "300vh" }}
     >
       <div className="sticky top-0 h-screen flex items-center justify-center overflow-hidden">
-        {/* Scrubbable background video */}
-        <video
-          ref={videoRef}
-          src="/specs-transition.mp4"
-          muted
-          playsInline
-          preload="auto"
-          disablePictureInPicture
-          crossOrigin="anonymous"
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-          style={{ filter: "contrast(1.05) saturate(1.1)", willChange: "contents" }}
-          onLoadedMetadata={() => {
-            const v = videoRef.current;
-            if (v) v.currentTime = 0;
-          }}
-        />
-        {/* Vignette + grid overlays */}
+        {/* Crimson aura */}
         <div
           aria-hidden
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "radial-gradient(ellipse at center, transparent 40%, rgba(7,7,10,0.85) 100%)",
+              "radial-gradient(circle at center, rgba(216,31,42,0.18) 0%, rgba(216,31,42,0.06) 35%, transparent 70%)",
           }}
         />
+
+        {/* Museum frame: gold outer hairline + bone inner border */}
+        <div
+          className="relative z-10 pixel-border bg-obsidian/60"
+          style={{
+            padding: "10px",
+            boxShadow:
+              "0 0 0 1px var(--gold), 0 0 0 12px var(--obsidian), 0 0 0 13px var(--gold), 0 30px 80px -20px rgba(216,31,42,0.35)",
+            width: "min(88vw, 1100px)",
+            aspectRatio: "16 / 9",
+            willChange: "transform",
+            transform: "translateZ(0)",
+            backfaceVisibility: "hidden",
+          }}
+        >
+          <video
+            ref={videoRef}
+            src="/specs-transition.mp4"
+            muted
+            playsInline
+            preload="auto"
+            loop={false}
+            disablePictureInPicture
+            className="block w-full h-full object-cover pointer-events-none"
+            style={{
+              filter: "contrast(1.12) saturate(1.18) brightness(1.02)",
+              willChange: "transform",
+              transform: "translateZ(0)",
+              backfaceVisibility: "hidden",
+            }}
+            onLoadedMetadata={() => {
+              const v = videoRef.current;
+              if (v) v.currentTime = 0;
+            }}
+          />
+          {/* Inner vignette for depth */}
+          <div
+            aria-hidden
+            className="absolute inset-[10px] pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(ellipse at center, transparent 55%, rgba(7,7,10,0.75) 100%)",
+            }}
+          />
+        </div>
+
+        {/* Grid overlay */}
         <div
           aria-hidden
-          className="absolute inset-0 opacity-[0.05] pointer-events-none"
+          className="absolute inset-0 opacity-[0.04] pointer-events-none"
           style={{
             backgroundImage:
               "linear-gradient(var(--bone) 1px, transparent 1px), linear-gradient(90deg, var(--bone) 1px, transparent 1px)",
@@ -135,7 +186,6 @@ export function SpecsScroll() {
           />
         ))}
 
-        {/* Scroll cue */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 font-pixel text-[9px] text-bone/60 uppercase tracking-widest z-20">
           ↓ Scroll ↓
         </div>
@@ -156,28 +206,30 @@ function SpecCard({
   reduced: boolean;
 }) {
   const start = spec.at;
-  const holdEnd = Math.min(1, start + 0.15);
-  const fadeOut = Math.min(1, start + 0.22);
+  // Crisp 8-bit snap: very short fade window centered on the key angle.
+  const snapIn = Math.max(0, start - 0.03);
+  const holdEnd = Math.min(1, start + 0.14);
+  const snapOut = Math.min(1, start + 0.2);
   const opacity = useTransform(
     progress,
-    [Math.max(0, start - 0.08), start, holdEnd, fadeOut],
+    [snapIn, start, holdEnd, snapOut],
     reduced ? [1, 1, 1, 1] : [0, 1, 1, 0],
   );
   const y = useTransform(
     progress,
-    [Math.max(0, start - 0.08), start],
-    reduced ? [0, 0] : [40, 0],
+    [snapIn, start],
+    reduced ? [0, 0] : [24, 0],
   );
   return (
     <motion.div
       style={{ opacity, y, willChange: "transform, opacity" }}
-      className={`absolute z-10 w-[86%] md:w-[380px] ${
+      className={`absolute z-20 w-[86%] md:w-[360px] ${
         side === "left"
-          ? "left-4 md:left-16 bottom-16 md:bottom-24"
-          : "right-4 md:right-16 top-24 md:top-32"
+          ? "left-4 md:left-10 bottom-16 md:bottom-20"
+          : "right-4 md:right-10 top-24 md:top-28"
       }`}
     >
-      <PixelCard tone="gold" className="p-5 md:p-6 bg-obsidian/85 backdrop-blur-[2px]">
+      <PixelCard tone="gold" className="p-5 md:p-6 bg-obsidian/90 backdrop-blur-[2px]">
         <div className="font-pixel text-[10px] text-gold uppercase tracking-widest mb-3">
           ◆ {spec.tag}
         </div>
