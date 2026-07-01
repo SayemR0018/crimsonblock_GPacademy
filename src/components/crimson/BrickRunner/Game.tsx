@@ -55,10 +55,10 @@ export function Game({ gender, onGameOver }: Props) {
     let player = { y: GROUND_Y - 16, vy: 0, onGround: true };
     const obstacles: Obstacle[] = [];
     const collectibles: Collectible[] = [];
-    let obstacleTimer = 60;
+    let obstacleTimer = 90;
     let collectibleTimer = 90;
     let frame = 0;
-    let speed = 3.2;
+    let speed = 1.92; // 40% reduction from original 3.2
     let alive = true;
     let paused = false;
 
