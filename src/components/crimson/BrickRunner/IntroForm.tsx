@@ -64,22 +64,22 @@ export function IntroForm({ onStart }: Props) {
 
       <div className="flex flex-col gap-3">
         <span className="font-pixel text-[10px] uppercase tracking-wider text-bone/80">
-          Choose Avatar
+          Choose Archetype
         </span>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-3">
           {OPTIONS.map((o) => (
             <button
               type="button"
               key={o.value}
               onClick={() => setGender(o.value)}
-              className={`text-left p-3 border-[3px] transition-colors font-mono ${
+              className={`text-left p-4 border-[3px] transition-colors font-mono ${
                 gender === o.value
                   ? "border-gold bg-obsidian"
                   : "border-bone/30 bg-obsidian hover:border-bone"
               }`}
             >
-              <div className="font-pixel text-[10px] uppercase text-bone">{o.label}</div>
-              <div className="text-[10px] text-bone/50 mt-1 leading-snug">{o.desc}</div>
+              <div className="font-pixel text-[10px] uppercase text-bone leading-tight">{o.label}</div>
+              <div className="text-[10px] text-bone/50 mt-2 leading-snug">{o.desc}</div>
             </button>
           ))}
         </div>
