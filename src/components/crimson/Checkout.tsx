@@ -152,6 +152,7 @@ export function Checkout() {
     setCardNumber("");
     setExpiry("");
     setCvc("");
+    setTrxId("");
     setMethod("bkash");
     clearDiscount();
     setErrors({});
