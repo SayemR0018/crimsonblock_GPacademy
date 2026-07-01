@@ -1,5 +1,6 @@
 import brickImg from "@/assets/brick.png";
 import { PixelButton } from "./ui/PixelButton";
+import { FomoCountdown } from "./FomoCountdown";
 
 function scrollTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
