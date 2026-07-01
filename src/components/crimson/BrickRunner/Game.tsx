@@ -16,8 +16,16 @@ interface Props {
 const W = 640;
 const H = 200;
 const GROUND_Y = 172;
-const GRAVITY = 0.6;
-const JUMP_V = -10.5;
+const PLAYER_H = 16;
+
+// All rates are per-second. Delta-time driven.
+const GAME_SPEED = 220;          // px / sec — flat, no ramp
+const GRAVITY = 1600;            // px / sec^2
+const JUMP_V = -560;             // px / sec
+const OBSTACLE_MIN_GAP = 1.4;    // sec
+const OBSTACLE_MAX_GAP = 2.4;    // sec
+const COLLECT_MIN_GAP = 1.0;
+const COLLECT_MAX_GAP = 1.8;
 
 type Obstacle = { x: number; kind: "block" | "cone"; w: number; h: number };
 type Collectible = { x: number; y: number; kind: "coin" | "brick"; taken?: boolean };
@@ -26,7 +34,7 @@ export function Game({ gender, onGameOver }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [displayScore, setDisplayScore] = useState(0);
   const rafRef = useRef<number | null>(null);
-  const stateRef = useRef({ score: 0 });
+  const scoreRef = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -34,12 +42,11 @@ export function Game({ gender, onGameOver }: Props) {
     const ctx = canvas.getContext("2d")!;
     ctx.imageSmoothingEnabled = false;
 
-    // Static stars
+    // ---- static bg
     const stars: { x: number; y: number; b: number }[] = [];
     for (let i = 0; i < 40; i++) {
       stars.push({ x: Math.random() * W, y: Math.random() * 100, b: Math.random() > 0.5 ? 1 : 2 });
     }
-    // Static skyline
     const skyline: { x: number; w: number; h: number }[] = [];
     let sx = 0;
     while (sx < W + 200) {
@@ -49,21 +56,25 @@ export function Game({ gender, onGameOver }: Props) {
       sx += w + 4;
     }
 
-    // Reset all mutable game state on every mount / restart.
-    stateRef.current.score = 0;
+    // ---- hard reset all mutable state
+    scoreRef.current = 0;
+    setDisplayScore(0);
     let scrollFar = 0;
     let scrollMid = 0;
     let scrollNear = 0;
-    let player = { y: GROUND_Y - 16, vy: 0, onGround: true };
-    const obstacles: Obstacle[] = [];
-    const collectibles: Collectible[] = [];
-    let obstacleTimer = 90;
-    let collectibleTimer = 90;
-    let frame = 0;
-    // Locked, casual pace — no ramp, no acceleration across runs.
-    const SPEED = 1.92;
+    let player = { y: GROUND_Y - PLAYER_H, vy: 0, onGround: true };
+    let obstacles: Obstacle[] = [];
+    let collectibles: Collectible[] = [];
+    let obstacleTimer = 1.2;       // seconds until next spawn
+    let collectibleTimer = 1.0;
+    let animTime = 0;              // for sprite / coin animation
+    let scoreAccum = 0;            // accumulates fractional points/sec
     let alive = true;
     let paused = false;
+    let hudAccum = 0;
+
+    let animationFrameId: number | null = null;
+    let lastTime = performance.now();
 
     function jump() {
       if (player.onGround && alive && !paused) {
@@ -84,6 +95,8 @@ export function Game({ gender, onGameOver }: Props) {
     }
     function onVis() {
       paused = document.hidden;
+      // reset lastTime so dt doesn't spike on resume
+      lastTime = performance.now();
     }
 
     window.addEventListener("keydown", onKey);
@@ -91,46 +104,50 @@ export function Game({ gender, onGameOver }: Props) {
     document.addEventListener("visibilitychange", onVis);
 
     function loop() {
-      frame++;
+      const now = performance.now();
+      let dt = (now - lastTime) / 1000;
+      lastTime = now;
+      if (dt > 0.1) dt = 0.1; // clamp to prevent physics warping
+
       if (!paused && alive) {
+        animTime += dt;
+
         // physics
-        player.vy += GRAVITY;
-        player.y += player.vy;
-        if (player.y >= GROUND_Y - 16) {
-          player.y = GROUND_Y - 16;
+        player.vy += GRAVITY * dt;
+        player.y += player.vy * dt;
+        if (player.y >= GROUND_Y - PLAYER_H) {
+          player.y = GROUND_Y - PLAYER_H;
           player.vy = 0;
           player.onGround = true;
         }
 
-        // scroll
-        scrollFar = (scrollFar + SPEED * 0.15) % W;
-        scrollMid = (scrollMid + SPEED * 0.4) % W;
-        scrollNear = (scrollNear + SPEED) % 16;
+        // parallax scroll (px)
+        scrollFar = (scrollFar + GAME_SPEED * 0.15 * dt) % W;
+        scrollMid = (scrollMid + GAME_SPEED * 0.4 * dt) % W;
+        scrollNear = (scrollNear + GAME_SPEED * dt) % 16;
 
-        // spawn obstacles
-        obstacleTimer--;
+        // obstacles
+        obstacleTimer -= dt;
         if (obstacleTimer <= 0) {
           const kind = Math.random() > 0.5 ? "block" : "cone";
           const w = kind === "block" ? 16 : 12;
           const h = kind === "block" ? 16 : 16;
           obstacles.push({ x: W + 20, kind, w, h });
-          // wider spacing — avoids unavoidable combos. Constant across runs.
-          obstacleTimer = 110 + Math.floor(Math.random() * 90);
+          obstacleTimer = OBSTACLE_MIN_GAP + Math.random() * (OBSTACLE_MAX_GAP - OBSTACLE_MIN_GAP);
         }
-        for (const o of obstacles) o.x -= SPEED;
-        while (obstacles.length && obstacles[0].x + obstacles[0].w < -4) obstacles.shift();
+        for (const o of obstacles) o.x -= GAME_SPEED * dt;
+        obstacles = obstacles.filter((o) => o.x + o.w > -4);
 
-        // spawn collectibles
-        collectibleTimer--;
+        // collectibles
+        collectibleTimer -= dt;
         if (collectibleTimer <= 0) {
           const kind = Math.random() > 0.75 ? "brick" : "coin";
           const yOff = 30 + Math.floor(Math.random() * 60);
-          collectibles.push({ x: W + 20, y: GROUND_Y - 16 - yOff, kind });
-          collectibleTimer = 70 + Math.floor(Math.random() * 90);
+          collectibles.push({ x: W + 20, y: GROUND_Y - PLAYER_H - yOff, kind });
+          collectibleTimer = COLLECT_MIN_GAP + Math.random() * (COLLECT_MAX_GAP - COLLECT_MIN_GAP);
         }
-        for (const c of collectibles) c.x -= SPEED;
-        while (collectibles.length && (collectibles[0].taken || collectibles[0].x < -12))
-          collectibles.shift();
+        for (const c of collectibles) c.x -= GAME_SPEED * dt;
+        collectibles = collectibles.filter((c) => !c.taken && c.x > -12);
 
         // collect
         for (const c of collectibles) {
@@ -138,15 +155,15 @@ export function Game({ gender, onGameOver }: Props) {
           if (
             c.x < 16 + 12 &&
             c.x + 10 > 12 &&
-            c.y < player.y + 16 &&
+            c.y < player.y + PLAYER_H &&
             c.y + 8 > player.y
           ) {
             c.taken = true;
-            stateRef.current.score += c.kind === "coin" ? 10 : 25;
+            scoreRef.current += c.kind === "coin" ? 10 : 25;
           }
         }
 
-        // collide — forgiving hitbox: tight around torso only
+        // collide — forgiving torso-only box
         for (const o of obstacles) {
           const px1 = 14, px2 = 14 + 8;
           const py1 = player.y + 5, py2 = player.y + 15;
@@ -154,25 +171,27 @@ export function Game({ gender, onGameOver }: Props) {
           const oy1 = GROUND_Y - o.h + 2, oy2 = GROUND_Y;
           if (px1 < ox2 && px2 > ox1 && py1 < oy2 && py2 > oy1) {
             alive = false;
-            const finalScore = stateRef.current.score;
+            const finalScore = scoreRef.current;
             setTimeout(() => {
-              // Halt the RAF loop before handing control back so no leftover
-              // frames leak into the next run.
-              if (rafRef.current) {
-                cancelAnimationFrame(rafRef.current);
-                rafRef.current = null;
+              if (animationFrameId !== null) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
               }
               onGameOver(finalScore);
             }, 700);
           }
         }
 
-        // score over time — pace locked, no speed ramp.
-        if (frame % 6 === 0) stateRef.current.score += 1;
+        // score over time — ~10 pts/sec
+        scoreAccum += dt * 10;
+        if (scoreAccum >= 1) {
+          const inc = Math.floor(scoreAccum);
+          scoreRef.current += inc;
+          scoreAccum -= inc;
+        }
       }
 
-      // render
-      // sky gradient
+      // ---- render
       const grad = ctx.createLinearGradient(0, 0, 0, H);
       grad.addColorStop(0, "#07070a");
       grad.addColorStop(0.6, "#14141a");
@@ -180,14 +199,13 @@ export function Game({ gender, onGameOver }: Props) {
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, W, H);
 
-      // stars (twinkle)
+      const twinkleFrame = Math.floor(animTime * 60);
       for (const s of stars) {
-        const on = (frame + Math.floor(s.x)) % 120 > 30;
+        const on = (twinkleFrame + Math.floor(s.x)) % 120 > 30;
         ctx.fillStyle = on ? "#ece7d5" : "#8a8a99";
         ctx.fillRect(s.x, s.y, s.b, s.b);
       }
 
-      // far skyline
       ctx.save();
       ctx.translate(-scrollFar, 0);
       for (let pass = 0; pass < 2; pass++) {
@@ -196,7 +214,6 @@ export function Game({ gender, onGameOver }: Props) {
           ctx.fillRect(b.x + pass * W, GROUND_Y - b.h, b.w, b.h);
           ctx.fillStyle = "#2c2c36";
           ctx.fillRect(b.x + pass * W, GROUND_Y - b.h, b.w, 2);
-          // pixel windows
           for (let wy = GROUND_Y - b.h + 6; wy < GROUND_Y - 4; wy += 6) {
             for (let wx = b.x + 3; wx < b.x + b.w - 3; wx += 5) {
               if ((wx + wy + b.h) % 3 === 0) {
@@ -209,37 +226,34 @@ export function Game({ gender, onGameOver }: Props) {
       }
       ctx.restore();
 
-      // ground line
       ctx.fillStyle = "#ece7d5";
       ctx.fillRect(0, GROUND_Y, W, 2);
       ctx.fillStyle = "#8a8a99";
-      // tick marks
       for (let i = -16; i < W + 16; i += 16) {
         ctx.fillRect(i - scrollNear, GROUND_Y + 3, 6, 1);
       }
       ctx.fillStyle = "#14141a";
       ctx.fillRect(0, GROUND_Y + 2, W, H - GROUND_Y - 2);
 
-      // obstacles
       for (const o of obstacles) {
         if (o.kind === "block") drawConcreteBlock(ctx, o.x, GROUND_Y - o.h, o.w, o.h);
         else drawCone(ctx, o.x, GROUND_Y - o.h);
       }
 
-      // collectibles
+      const coinFrame = Math.floor(animTime * 30);
       for (const c of collectibles) {
         if (c.taken) continue;
-        if (c.kind === "coin") drawCoin(ctx, c.x, c.y, frame);
+        if (c.kind === "coin") drawCoin(ctx, c.x, c.y, coinFrame);
         else drawMiniBrick(ctx, c.x, c.y);
       }
 
-      // player
-      drawPlayer(ctx, 12, player.y, gender, Math.floor(frame / 6));
+      // ~10 fps run cycle
+      const runFrame = Math.floor(animTime * 10);
+      drawPlayer(ctx, 12, player.y, gender, runFrame);
 
-      // HUD
       ctx.fillStyle = "#ece7d5";
       ctx.font = 'bold 12px "JetBrains Mono", monospace';
-      ctx.fillText(`SCORE ${String(stateRef.current.score).padStart(5, "0")}`, 8, 16);
+      ctx.fillText(`SCORE ${String(scoreRef.current).padStart(5, "0")}`, 8, 16);
 
       if (!alive) {
         ctx.fillStyle = "rgba(7,7,10,0.6)";
@@ -261,19 +275,27 @@ export function Game({ gender, onGameOver }: Props) {
         ctx.textAlign = "left";
       }
 
-      // update react score display (throttled)
-      if (frame % 6 === 0) setDisplayScore(stateRef.current.score);
+      // throttle HUD react updates to ~10Hz
+      hudAccum += dt;
+      if (hudAccum >= 0.1) {
+        hudAccum = 0;
+        setDisplayScore(scoreRef.current);
+      }
 
-      // Only re-queue if this loop wasn't cancelled externally (unmount / game-over halt).
-      if (rafRef.current !== null) {
-        rafRef.current = requestAnimationFrame(loop);
+      if (animationFrameId !== null) {
+        animationFrameId = requestAnimationFrame(loop);
+        rafRef.current = animationFrameId;
       }
     }
 
-    rafRef.current = requestAnimationFrame(loop);
+    animationFrameId = requestAnimationFrame(loop);
+    rafRef.current = animationFrameId;
 
     return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+      }
+      animationFrameId = null;
       rafRef.current = null;
       window.removeEventListener("keydown", onKey);
       canvas.removeEventListener("pointerdown", onPointer);
