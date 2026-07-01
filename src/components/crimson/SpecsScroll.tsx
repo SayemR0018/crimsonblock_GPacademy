@@ -86,9 +86,7 @@ export function SpecsScroll() {
           muted
           playsInline
           preload="auto"
-          // @ts-expect-error non-standard attributes for iOS Safari scrubbing
           disablePictureInPicture
-          disableRemotePlayback
           crossOrigin="anonymous"
           className="absolute inset-0 w-full h-full object-cover pointer-events-none"
           style={{ filter: "contrast(1.05) saturate(1.1)" }}
