@@ -135,6 +135,7 @@ export function Checkout() {
       code: discount?.code ?? null,
       percent: discount?.percent ?? 0,
       total: totals.grandTotal,
+      trxId: method === "bkash" ? trxId.trim().toUpperCase() : null,
       ts: Date.now(),
     };
     addOrder(o);
