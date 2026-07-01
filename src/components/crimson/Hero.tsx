@@ -72,11 +72,11 @@ export function Hero() {
 
         <div className="relative flex flex-col items-center gap-8 md:gap-10">
           {/* Brick stage */}
-          <div className="relative w-full flex items-center justify-center">
+          <div className="relative w-full flex flex-col items-center justify-center">
             {/* radial glow */}
             <div
               aria-hidden
-              className="absolute inset-0 flex items-center justify-center"
+              className="absolute inset-0 flex items-center justify-center pointer-events-none"
             >
               <div
                 className="w-[70%] aspect-square"
@@ -89,28 +89,22 @@ export function Hero() {
               />
             </div>
 
-            {/* plinth */}
-            <div className="relative flex flex-col items-center">
-              <img
-                src={brickImg}
-                alt="The Crimson Block — an isometric pixel-rendered luxury red brick"
-                width={520}
-                height={520}
-                className="pixelated relative z-10 drop-shadow-[0_20px_0_rgba(0,0,0,0.6)] w-[240px] sm:w-[300px] md:w-[380px] h-auto"
-                style={{ animation: "hero-float 6s ease-in-out infinite", willChange: "transform" }}
-              />
-              <div className="relative z-0 -mt-6 w-[220px] sm:w-[260px] md:w-[320px] h-6 bg-gold border-[3px] border-obsidian" />
-              <div className="relative z-0 w-[200px] sm:w-[240px] md:w-[300px] h-3 bg-[color:var(--gold)]/40 border-x-[3px] border-b-[3px] border-obsidian" />
+            <img
+              src={brickImg}
+              alt="The Crimson Block — an isometric pixel-rendered luxury red brick"
+              width={520}
+              height={520}
+              className="pixelated relative z-10 drop-shadow-[0_20px_0_rgba(0,0,0,0.6)] w-[240px] sm:w-[300px] md:w-[380px] h-auto"
+              style={{ animation: "hero-float 6s ease-in-out infinite", willChange: "transform" }}
+            />
+
+            <div className="mt-4 md:mt-6 relative z-10">
+              <FomoCountdown />
             </div>
 
             <div className="absolute top-0 left-0 font-pixel text-[10px] text-bone/40">
               [ SPEC-001 ]
             </div>
-          </div>
-
-          {/* FOMO timer — isolated in its own row, never overlaps the plinth */}
-          <div className="w-full flex justify-center md:justify-end">
-            <FomoCountdown />
           </div>
         </div>
       </div>
