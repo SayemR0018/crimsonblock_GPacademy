@@ -49,6 +49,8 @@ export function Game({ gender, onGameOver }: Props) {
       sx += w + 4;
     }
 
+    // Reset all mutable game state on every mount / restart.
+    stateRef.current.score = 0;
     let scrollFar = 0;
     let scrollMid = 0;
     let scrollNear = 0;
@@ -58,7 +60,8 @@ export function Game({ gender, onGameOver }: Props) {
     let obstacleTimer = 90;
     let collectibleTimer = 90;
     let frame = 0;
-    let speed = 1.92; // 40% reduction from original 3.2
+    // Locked, casual pace — no ramp, no acceleration across runs.
+    const SPEED = 1.92;
     let alive = true;
     let paused = false;
 
