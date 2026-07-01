@@ -155,13 +155,15 @@ export function Game({ gender, onGameOver }: Props) {
           if (px1 < ox2 && px2 > ox1 && py1 < oy2 && py2 > oy1) {
             alive = false;
             const finalScore = stateRef.current.score;
-            // Halt the RAF loop immediately so no leftover frames leak into the next run.
-            if (rafRef.current) {
-              cancelAnimationFrame(rafRef.current);
-              rafRef.current = null;
-            }
-            setTimeout(() => onGameOver(finalScore), 700);
-            return;
+            setTimeout(() => {
+              // Halt the RAF loop before handing control back so no leftover
+              // frames leak into the next run.
+              if (rafRef.current) {
+                cancelAnimationFrame(rafRef.current);
+                rafRef.current = null;
+              }
+              onGameOver(finalScore);
+            }, 700);
           }
         }
 
