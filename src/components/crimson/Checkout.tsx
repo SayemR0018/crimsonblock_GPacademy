@@ -225,6 +225,29 @@ export function Checkout() {
                   onChange={setMethod}
                   options={PAYMENTS}
                 />
+                {method === "bkash" && (
+                  <div
+                    className="mt-4 bg-obsidian p-4 flex flex-col gap-3 border-[3px]"
+                    style={{ borderColor: "#e2136e", boxShadow: "4px 4px 0 0 rgba(0,0,0,0.5)" }}
+                  >
+                    <div className="font-pixel text-[9px] uppercase tracking-widest" style={{ color: "#ff4d94" }}>
+                      ◆ bKash Confirmation
+                    </div>
+                    <PixelInput
+                      label="bKash Transaction ID"
+                      name="trxId"
+                      value={trxId}
+                      onChange={(e) => setTrxId(e.target.value.toUpperCase())}
+                      error={errors.trxId}
+                      maxLength={20}
+                      placeholder="e.g., TRX10293847"
+                      autoComplete="off"
+                    />
+                    <p className="font-mono text-[10px] text-bone/50 leading-relaxed">
+                      Send ৳{totals.grandTotal.toLocaleString()} to <span className="text-bone">01XXX-XXXXXX</span> · paste the TrxID above.
+                    </p>
+                  </div>
+                )}
                 {method === "card" && (
                   <div className="mt-4 bg-obsidian border-[3px] border-bone/40 p-4 flex flex-col gap-4">
                     <PixelInput
