@@ -111,8 +111,9 @@ export function Game({ gender, onGameOver }: Props) {
           const w = kind === "block" ? 16 : 12;
           const h = kind === "block" ? 16 : 16;
           obstacles.push({ x: W + 20, kind, w, h });
-          obstacleTimer = 60 + Math.floor(Math.random() * 60) - Math.min(30, Math.floor(stateRef.current.score / 60));
-          obstacleTimer = Math.max(28, obstacleTimer);
+          // wider spacing — avoids unavoidable combos
+          obstacleTimer = 110 + Math.floor(Math.random() * 90) - Math.min(40, Math.floor(stateRef.current.score / 80));
+          obstacleTimer = Math.max(75, obstacleTimer);
         }
         for (const o of obstacles) o.x -= speed;
         while (obstacles.length && obstacles[0].x + obstacles[0].w < -4) obstacles.shift();
