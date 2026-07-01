@@ -144,12 +144,12 @@ export function Game({ gender, onGameOver }: Props) {
           }
         }
 
-        // collide
+        // collide — forgiving hitbox: tight around torso only
         for (const o of obstacles) {
-          const px1 = 12, px2 = 12 + 12; // slight hitbox forgiveness
-          const py1 = player.y + 3, py2 = player.y + 16;
-          const ox1 = o.x + 1, ox2 = o.x + o.w - 1;
-          const oy1 = GROUND_Y - o.h, oy2 = GROUND_Y;
+          const px1 = 14, px2 = 14 + 8;
+          const py1 = player.y + 5, py2 = player.y + 15;
+          const ox1 = o.x + 3, ox2 = o.x + o.w - 3;
+          const oy1 = GROUND_Y - o.h + 2, oy2 = GROUND_Y;
           if (px1 < ox2 && px2 > ox1 && py1 < oy2 && py2 > oy1) {
             alive = false;
             const finalScore = stateRef.current.score;
@@ -159,7 +159,7 @@ export function Game({ gender, onGameOver }: Props) {
 
         // score over time
         if (frame % 6 === 0) stateRef.current.score += 1;
-        if (frame % 240 === 0) speed = Math.min(6.5, speed + 0.25);
+        if (frame % 300 === 0) speed = Math.min(3.9, speed + 0.15);
       }
 
       // render
