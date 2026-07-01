@@ -70,41 +70,46 @@ export function Hero() {
           </dl>
         </div>
 
-        <div className="relative flex items-center justify-center">
-          {/* radial glow */}
-          <div
-            aria-hidden
-            className="absolute inset-0 flex items-center justify-center"
-          >
+        <div className="relative flex flex-col items-center gap-8 md:gap-10">
+          {/* Brick stage */}
+          <div className="relative w-full flex items-center justify-center">
+            {/* radial glow */}
             <div
-              className="w-[70%] aspect-square"
-              style={{
-                background:
-                  "radial-gradient(circle, var(--crimson-glow) 0%, transparent 60%)",
-                opacity: 0.55,
-                filter: "blur(20px)",
-              }}
-            />
+              aria-hidden
+              className="absolute inset-0 flex items-center justify-center"
+            >
+              <div
+                className="w-[70%] aspect-square"
+                style={{
+                  background:
+                    "radial-gradient(circle, var(--crimson-glow) 0%, transparent 60%)",
+                  opacity: 0.55,
+                  filter: "blur(20px)",
+                }}
+              />
+            </div>
+
+            {/* plinth */}
+            <div className="relative flex flex-col items-center">
+              <img
+                src={brickImg}
+                alt="The Crimson Block — an isometric pixel-rendered luxury red brick"
+                width={520}
+                height={520}
+                className="pixelated relative z-10 drop-shadow-[0_20px_0_rgba(0,0,0,0.6)] w-[240px] sm:w-[300px] md:w-[380px] h-auto"
+                style={{ animation: "hero-float 6s ease-in-out infinite", willChange: "transform" }}
+              />
+              <div className="relative z-0 -mt-6 w-[220px] sm:w-[260px] md:w-[320px] h-6 bg-gold border-[3px] border-obsidian" />
+              <div className="relative z-0 w-[200px] sm:w-[240px] md:w-[300px] h-3 bg-[color:var(--gold)]/40 border-x-[3px] border-b-[3px] border-obsidian" />
+            </div>
+
+            <div className="absolute top-0 left-0 font-pixel text-[10px] text-bone/40">
+              [ SPEC-001 ]
+            </div>
           </div>
 
-          {/* plinth */}
-          <div className="relative flex flex-col items-center">
-            <img
-              src={brickImg}
-              alt="The Crimson Block — an isometric pixel-rendered luxury red brick"
-              width={520}
-              height={520}
-              className="pixelated relative z-10 drop-shadow-[0_20px_0_rgba(0,0,0,0.6)] w-[280px] md:w-[420px] h-auto"
-              style={{ animation: "hero-float 6s ease-in-out infinite" }}
-            />
-            <div className="relative z-0 -mt-6 w-[240px] md:w-[360px] h-6 bg-gold border-[3px] border-obsidian" />
-            <div className="relative z-0 w-[220px] md:w-[340px] h-3 bg-[color:var(--gold)]/40 border-x-[3px] border-b-[3px] border-obsidian" />
-          </div>
-
-          <div className="absolute -top-2 left-0 font-pixel text-[10px] text-bone/40">
-            [ SPEC-001 ]
-          </div>
-          <div className="absolute -bottom-4 right-0 md:right-2">
+          {/* FOMO timer — isolated in its own row, never overlaps the plinth */}
+          <div className="w-full flex justify-center md:justify-end">
             <FomoCountdown />
           </div>
         </div>

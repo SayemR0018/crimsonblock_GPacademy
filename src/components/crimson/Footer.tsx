@@ -85,13 +85,17 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="flex items-center gap-3 font-mono text-[11px] text-bone/60 text-center md:text-right">
-          <span>A tribute made at</span>
+        <div className="flex items-center gap-3 font-mono text-[12px] text-bone/80 text-center md:text-right">
+          <span className="uppercase tracking-wider">A tribute made at</span>
           <img
             src={gpAcademyAsset.url}
             alt="Grameenphone Academy"
-            className="h-5 w-auto bg-bone px-1.5 py-0.5 border-[2px] border-bone"
-            style={{ imageRendering: "auto" }}
+            className="h-10 md:h-12 w-auto"
+            style={{
+              imageRendering: "auto",
+              filter: "brightness(0) invert(1) drop-shadow(0 0 6px rgba(212,175,55,0.25))",
+              mixBlendMode: "screen",
+            }}
           />
         </div>
       </div>
