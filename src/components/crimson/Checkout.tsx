@@ -10,15 +10,44 @@ import { launchPixelConfetti } from "./PixelConfetti";
 
 const UNIT_PRICE = 9999;
 
+// 8-bit adaptation of the bKash bird emblem — pure pixel rects, magenta/pink palette.
+function BkashBird() {
+  const M = "#e2136e"; // signature magenta
+  const P = "#ff4d94"; // highlight pink
+  const D = "#8a0a3f"; // shadow
+  // 10x10 grid of 3px cells → 30x30 icon
+  const map: (string | null)[][] = [
+    [null, null, M, M, null, null, null, null, null, null],
+    [null, M, P, M, M, null, null, null, null, null],
+    [M, P, P, M, M, M, null, null, M, null],
+    [M, P, P, P, M, M, M, M, M, null],
+    [D, M, P, P, P, M, M, M, null, null],
+    [null, D, M, P, P, M, M, null, null, null],
+    [null, null, D, M, M, M, null, null, null, null],
+    [null, null, D, M, M, null, null, null, null, null],
+    [null, null, null, D, null, null, null, null, null, null],
+    [null, null, null, null, null, null, null, null, null, null],
+  ];
+  return (
+    <svg viewBox="0 0 30 30" width="30" height="30" shapeRendering="crispEdges" aria-hidden>
+      {map.flatMap((row, y) =>
+        row.map((c, x) =>
+          c ? <rect key={`${x}-${y}`} x={x * 3} y={y * 3} width="3" height="3" fill={c} /> : null,
+        ),
+      )}
+    </svg>
+  );
+}
+
 const PAYMENTS: PixelRadioOption<PaymentMethod>[] = [
   {
     value: "bkash",
     label: "bKash",
     sublabel: "Mobile financial services · instant",
-    accent: "var(--bkash)",
+    accent: "#e2136e",
     icon: (
-      <span className="font-pixel text-[10px] text-bone bg-[color:var(--bkash)] px-2 py-1 border-[3px] border-obsidian">
-        bK
+      <span className="inline-flex items-center justify-center bg-bone p-1 border-[3px] border-obsidian">
+        <BkashBird />
       </span>
     ),
   },
