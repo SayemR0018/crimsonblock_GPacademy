@@ -3,6 +3,7 @@ import brickImg from "@/assets/brick.png";
 import { Header } from "@/components/crimson/Header";
 import { Hero } from "@/components/crimson/Hero";
 import { SpecsScroll } from "@/components/crimson/SpecsScroll";
+import { InteractiveShowcase } from "@/components/crimson/InteractiveShowcase";
 import { BrickRunner } from "@/components/crimson/BrickRunner";
 import { Checkout } from "@/components/crimson/Checkout";
 import { Footer } from "@/components/crimson/Footer";
@@ -66,6 +67,7 @@ function Index() {
       <main>
         <Hero />
         <SpecsScroll />
+        <InteractiveShowcase />
         <BrickRunner />
         <Checkout />
       </main>
