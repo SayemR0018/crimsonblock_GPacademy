@@ -28,14 +28,14 @@ const HOTSPOTS: Hotspot[] = [
     id: "facet",
     label: "THE FACET",
     title: "Zero-Radius Edges",
-    body: "Precision-engineered right-angle geometry.",
+    body: "Precision-engineered right-angle geometry for ideal structural alignment.",
     position: [0.9, 0.05, 0.4],
   },
   {
     id: "base",
     label: "THE BASE",
     title: "Obsidian Grip Matrix",
-    body: "Micro-textured foundation for permanent placement.",
+    body: "Micro-textured foundation footprint for permanent architectural placement.",
     position: [-0.5, -0.5, 0.4],
   },
 ];
@@ -43,16 +43,20 @@ const HOTSPOTS: Hotspot[] = [
 const DEFAULT_CAM: [number, number, number] = [2.2, 1.7, 2.6];
 const DEFAULT_TARGET: [number, number, number] = [0, 0, 0];
 
-type InteractState = { lastInteract: number; autoWeight: number };
+type InteractState = { lastInteract: number; autoWeight: number; locked: boolean };
 
 function BrickModel({
   interact,
   activeId,
+  hoverId,
   onHover,
+  onClick,
 }: {
   interact: React.MutableRefObject<InteractState>;
   activeId: string | null;
-  onHover: (h: Hotspot | null) => void;
+  hoverId: string | null;
+  onHover: (id: string | null) => void;
+  onClick: (id: string) => void;
 }) {
   const { scene } = useGLTF(MODEL_URL) as unknown as { scene: THREE.Group };
   const groupRef = useRef<THREE.Group>(null);
@@ -72,10 +76,13 @@ function BrickModel({
     if (!g) return;
     const t = state.clock.getElapsedTime();
     const idleFor = (performance.now() - interact.current.lastInteract) / 1000;
-    const target = idleFor > 2.5 ? 1 : 0;
+    const shouldAuto = !interact.current.locked && idleFor > 2.5;
+    const target = shouldAuto ? 1 : 0;
     interact.current.autoWeight += (target - interact.current.autoWeight) * 0.06;
     const w = interact.current.autoWeight;
-    g.position.y = Math.sin(t * 1.5) * 0.12;
+    // Multi-axis floating sinewave (dampened when locked/interacting)
+    g.position.y = Math.sin(t * 1.5) * 0.12 * (0.25 + 0.75 * w);
+    g.position.x = Math.sin(t * 0.9) * 0.04 * w;
     if (w > 0.01) {
       g.rotation.y += 0.005 * w;
       g.rotation.x += (Math.sin(t * 0.6) * 0.08 - g.rotation.x) * 0.02 * w;
@@ -84,14 +91,16 @@ function BrickModel({
 
   return (
     <Center>
-      <group ref={groupRef} scale={activeId ? 1.06 : 1}>
+      <group ref={groupRef}>
         <primitive object={scene} />
         {HOTSPOTS.map((h) => (
-          <Hotspot3D
+          <MicroHotspot
             key={h.id}
             hotspot={h}
             active={activeId === h.id}
+            hovered={hoverId === h.id}
             onHover={onHover}
+            onClick={onClick}
           />
         ))}
       </group>
@@ -99,40 +108,74 @@ function BrickModel({
   );
 }
 
-function Hotspot3D({
+function MicroHotspot({
   hotspot,
   active,
+  hovered,
   onHover,
+  onClick,
 }: {
   hotspot: Hotspot;
   active: boolean;
-  onHover: (h: Hotspot | null) => void;
+  hovered: boolean;
+  onHover: (id: string | null) => void;
+  onClick: (id: string) => void;
 }) {
   return (
     <group position={hotspot.position}>
       <Html center distanceFactor={6} zIndexRange={[20, 0]} style={{ pointerEvents: "none" }}>
         <div
-          className="relative flex items-center justify-center w-7 h-7 opacity-0 group-hover/canvas:opacity-100 transition-opacity duration-300"
+          className="relative flex items-center justify-center"
           style={{ pointerEvents: "auto" }}
-          onMouseEnter={() => onHover(hotspot)}
+          onMouseEnter={() => onHover(hotspot.id)}
           onMouseLeave={() => onHover(null)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick(hotspot.id);
+          }}
         >
-          {!active && (
-            <span aria-hidden className="absolute inset-0 bg-crimson/40 animate-ping" />
+          {/* Tooltip — appears above on hover */}
+          <div
+            className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 pointer-events-none whitespace-nowrap transition-opacity duration-150 ease-out will-change-[opacity] ${
+              hovered ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            <div
+              className="font-mono text-[8px] uppercase tracking-widest text-bone px-2 py-1 bg-obsidian/95"
+              style={{ border: "1px solid var(--gold)" }}
+            >
+              {hotspot.label}
+            </div>
+          </div>
+
+          {/* Active ring burst */}
+          {active && (
+            <span
+              aria-hidden
+              className="absolute inset-0 -m-2 border border-gold animate-ping"
+              style={{ pointerEvents: "none" }}
+            />
           )}
-          <span
-            className={`relative w-7 h-7 flex items-center justify-center bg-obsidian font-pixel text-[12px] ${
-              active ? "text-crimson" : "text-gold"
+
+          {/* Micro-hotspot node */}
+          <button
+            type="button"
+            aria-label={hotspot.label}
+            className={`w-6 h-6 flex items-center justify-center font-pixel text-[10px] cursor-pointer transition-all duration-300 ease-out will-change-[transform,opacity] ${
+              active ? "text-crimson scale-110" : hovered ? "text-gold scale-105" : "text-bone"
             }`}
             style={{
-              border: `2px solid ${active ? "var(--crimson)" : "var(--gold)"}`,
+              background: "rgba(20,20,26,0.72)",
+              border: "1px solid var(--bone)",
+              outline: "1px solid var(--gold)",
+              outlineOffset: "1px",
               boxShadow: active
-                ? "0 0 0 2px var(--obsidian), 0 0 16px rgba(216,31,42,0.85)"
-                : "0 0 0 2px var(--obsidian), 0 0 12px rgba(212,175,55,0.6)",
+                ? "0 0 12px rgba(216,31,42,0.9)"
+                : "0 0 6px rgba(212,175,55,0.35)",
             }}
           >
             +
-          </span>
+          </button>
         </div>
       </Html>
     </group>
@@ -202,11 +245,13 @@ function LoaderOverlay() {
 }
 
 export function InteractiveShowcase() {
-  const [hovered, setHovered] = useState<Hotspot | null>(null);
+  const [hoverId, setHoverId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [resetSignal, setResetSignal] = useState(0);
   const interactRef = useRef<InteractState>({
     lastInteract: -Infinity,
     autoWeight: 1,
+    locked: false,
   });
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
 
@@ -214,10 +259,23 @@ export function InteractiveShowcase() {
     interactRef.current.lastInteract = performance.now();
   }, []);
 
+  const handleHotspotClick = useCallback((id: string) => {
+    setActiveId((prev) => {
+      const next = prev === id ? null : id;
+      interactRef.current.locked = next !== null;
+      interactRef.current.lastInteract = performance.now();
+      return next;
+    });
+  }, []);
+
   const handleReset = () => {
-    setHovered(null);
+    setActiveId(null);
+    setHoverId(null);
+    interactRef.current.locked = false;
     setResetSignal((n) => n + 1);
   };
+
+  const activeSpot = HOTSPOTS.find((h) => h.id === activeId) ?? null;
 
   return (
     <section id="interactive-analysis" className="relative bg-obsidian py-20 md:py-28 px-4">
@@ -299,8 +357,10 @@ export function InteractiveShowcase() {
               <Suspense fallback={<LoaderOverlay />}>
                 <BrickModel
                   interact={interactRef}
-                  activeId={hovered?.id ?? null}
-                  onHover={setHovered}
+                  activeId={activeId}
+                  hoverId={hoverId}
+                  onHover={setHoverId}
+                  onClick={handleHotspotClick}
                 />
               </Suspense>
               <OrbitControls
@@ -324,28 +384,46 @@ export function InteractiveShowcase() {
               CLICK & DRAG TO EXAMINE
             </div>
 
-            {/* Floating tooltip banner */}
+            {/* Detail banner — bottom center, appears on click */}
             <div
-              className={`absolute left-1/2 -translate-x-1/2 bottom-6 z-30 pointer-events-none transition-all duration-300 ${
-                hovered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+              className={`absolute left-1/2 -translate-x-1/2 bottom-4 z-30 w-[92%] max-w-[520px] transition-all duration-300 ease-out will-change-[transform,opacity] ${
+                activeSpot
+                  ? "opacity-100 translate-y-0 pointer-events-auto"
+                  : "opacity-0 translate-y-3 pointer-events-none"
               }`}
             >
               <div
-                className="bg-obsidian/95 px-4 py-3 min-w-[240px] max-w-[380px] text-center"
+                className="bg-obsidian/95 px-4 py-3 flex items-center gap-3"
                 style={{
-                  border: "2px solid var(--gold)",
+                  border: "1px solid var(--gold)",
+                  outline: "1px solid var(--bone)",
+                  outlineOffset: "2px",
                   boxShadow: "4px 4px 0 0 rgba(0,0,0,0.9)",
                 }}
               >
-                <div className="font-mono text-[9px] uppercase tracking-widest text-crimson mb-1">
-                  {hovered?.label ?? "—"}
+                <div className="flex-1 min-w-0">
+                  <div className="font-mono text-[9px] uppercase tracking-widest text-crimson">
+                    {activeSpot?.label ?? "—"}
+                  </div>
+                  <div className="font-pixel text-[10px] leading-[1.5] text-bone mt-1">
+                    {activeSpot?.title ?? ""}
+                  </div>
+                  <div className="font-mono text-[10px] leading-relaxed text-bone/75 mt-1">
+                    {activeSpot?.body ?? ""}
+                  </div>
                 </div>
-                <div className="font-pixel text-[10px] md:text-[11px] leading-[1.5] text-bone">
-                  {hovered?.title ?? ""}
-                </div>
-                <div className="font-mono text-[10px] leading-relaxed text-bone/70 mt-1">
-                  {hovered?.body ?? ""}
-                </div>
+                <button
+                  type="button"
+                  aria-label="Close details"
+                  onClick={() => {
+                    setActiveId(null);
+                    interactRef.current.locked = false;
+                  }}
+                  className="font-pixel text-[10px] text-bone hover:text-crimson w-6 h-6 flex items-center justify-center transition-colors"
+                  style={{ border: "1px solid var(--bone)" }}
+                >
+                  ×
+                </button>
               </div>
             </div>
           </div>
@@ -353,7 +431,7 @@ export function InteractiveShowcase() {
           <div className="mt-6 flex justify-center">
             <button
               onClick={handleReset}
-              className="font-pixel text-[10px] uppercase tracking-widest bg-charcoal text-bone hover:text-gold px-6 py-3 transition-colors"
+              className="font-pixel text-[10px] uppercase tracking-widest bg-charcoal text-bone hover:text-gold px-6 py-3 transition-all duration-300 ease-out will-change-[transform,opacity]"
               style={{
                 border: "2px solid var(--gold)",
                 boxShadow: "3px 3px 0 0 var(--obsidian)",
