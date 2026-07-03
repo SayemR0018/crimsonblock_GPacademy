@@ -21,21 +21,21 @@ const HOTSPOTS: Hotspot[] = [
     id: "core",
     label: "THE CORE",
     title: "Thermal Kiln Vitrification",
-    body: "Hardened at 1200°C to withstand economic downturns.",
+    body: "Core matrix hardened at 1200°C inside a sealed obsidian kiln for 72 hours — vitrifying the silica lattice into a monolithic thermal shield that laughs at recessions, sanctions, and market corrections. Log signature: KILN-Δ1200-72H.",
     position: [0, 0.55, 0.15],
   },
   {
     id: "facet",
     label: "THE FACET",
     title: "Zero-Radius Edges",
-    body: "Precision-engineered right-angle geometry for ideal structural alignment.",
+    body: "Precision-milled 90.00° corner facets, anti-aliased to a tolerance of ±0.02mm. Every edge is a right angle — no rounded compromises, no softened commercial curves. Interlocks flawlessly with adjacent units for architectural alignment across an entire foundation grid. Log signature: FACET-R0-AA.",
     position: [0.9, 0.05, 0.4],
   },
   {
     id: "base",
     label: "THE BASE",
     title: "Obsidian Grip Matrix",
-    body: "Micro-textured foundation footprint for permanent architectural placement.",
+    body: "The underside is stamped with a proprietary micro-textured grip matrix: 4,096 micro-cells per square inch that lock into any mortar, epoxy, or vacuum footprint. Once placed, the block is permanent — architectural memory encoded at the sub-millimeter scale. Log signature: BASE-OGM-4K.",
     position: [-0.5, -0.5, 0.4],
   },
 ];
@@ -80,12 +80,16 @@ function BrickModel({
     const target = shouldAuto ? 1 : 0;
     interact.current.autoWeight += (target - interact.current.autoWeight) * 0.06;
     const w = interact.current.autoWeight;
-    // Multi-axis floating sinewave (dampened when locked/interacting)
-    g.position.y = Math.sin(t * 1.5) * 0.12 * (0.25 + 0.75 * w);
-    g.position.x = Math.sin(t * 0.9) * 0.04 * w;
+
+    // Cinematic zero-gravity levitation — layered harmonic sinewaves
+    g.position.y = Math.sin(t * 1.2) * 0.18 * (0.3 + 0.7 * w);
+    g.position.x = Math.sin(t * 0.7) * 0.05 * w;
+    const targetRotX = Math.sin(t * 0.6) * 0.05;
+    const targetRotZ = Math.cos(t * 0.5) * 0.04;
+    g.rotation.x += (targetRotX * w - g.rotation.x) * 0.05;
+    g.rotation.z += (targetRotZ * w - g.rotation.z) * 0.05;
     if (w > 0.01) {
-      g.rotation.y += 0.005 * w;
-      g.rotation.x += (Math.sin(t * 0.6) * 0.08 - g.rotation.x) * 0.02 * w;
+      g.rotation.y += 0.004 * w;
     }
   });
 
@@ -121,6 +125,7 @@ function MicroHotspot({
   onHover: (id: string | null) => void;
   onClick: (id: string) => void;
 }) {
+  // Visible when: parent frame hovered (group-hover), this dot hovered, or active
   return (
     <group position={hotspot.position}>
       <Html center distanceFactor={6} zIndexRange={[20, 0]} style={{ pointerEvents: "none" }}>
@@ -134,48 +139,42 @@ function MicroHotspot({
             onClick(hotspot.id);
           }}
         >
-          {/* Tooltip — appears above on hover */}
+          {/* Hover micro-label */}
           <div
-            className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 pointer-events-none whitespace-nowrap transition-opacity duration-150 ease-out will-change-[opacity] ${
-              hovered ? "opacity-100" : "opacity-0"
+            className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 pointer-events-none whitespace-nowrap transition-opacity ease-out ${
+              hovered ? "opacity-100 duration-150" : "opacity-0 duration-150"
             }`}
           >
-            <div
-              className="font-mono text-[8px] uppercase tracking-widest text-bone px-2 py-1 bg-obsidian/95"
-              style={{ border: "1px solid var(--gold)" }}
+            <span
+              className="font-mono text-[8px] uppercase tracking-[0.15em] text-amber-200"
+              style={{ textShadow: "0 0 6px rgba(0,0,0,0.9), 1px 1px 0 rgba(0,0,0,0.9)" }}
             >
               {hotspot.label}
-            </div>
+            </span>
           </div>
 
-          {/* Active ring burst */}
+          {/* Active pulse ring */}
           {active && (
             <span
               aria-hidden
-              className="absolute inset-0 -m-2 border border-gold animate-ping"
+              className="absolute w-4 h-4 rounded-full border border-amber-300/70 animate-ping"
               style={{ pointerEvents: "none" }}
             />
           )}
 
-          {/* Micro-hotspot node */}
+          {/* Micro-dot — invisible by default, visible on frame hover / self hover / active */}
           <button
             type="button"
             aria-label={hotspot.label}
-            className={`w-6 h-6 flex items-center justify-center font-pixel text-[10px] cursor-pointer transition-all duration-300 ease-out will-change-[transform,opacity] ${
-              active ? "text-crimson scale-110" : hovered ? "text-gold scale-105" : "text-bone"
-            }`}
+            className={`w-2.5 h-2.5 rounded-full bg-amber-400 cursor-pointer transition-all ease-out duration-300 will-change-[transform,opacity] opacity-0 group-hover/canvas:opacity-100 ${
+              hovered ? "opacity-100 scale-125" : ""
+            } ${active ? "opacity-100 scale-150 bg-crimson" : ""}`}
             style={{
-              background: "rgba(20,20,26,0.72)",
-              border: "1px solid var(--bone)",
-              outline: "1px solid var(--gold)",
-              outlineOffset: "1px",
               boxShadow: active
-                ? "0 0 12px rgba(216,31,42,0.9)"
-                : "0 0 6px rgba(212,175,55,0.35)",
+                ? "0 0 12px rgba(216,31,42,0.95), 0 0 4px rgba(0,0,0,0.9)"
+                : "0 0 8px rgba(251,191,36,0.8)",
             }}
-          >
-            +
-          </button>
+          />
         </div>
       </Html>
     </group>
@@ -383,48 +382,49 @@ export function InteractiveShowcase() {
               <MouseIcon />
               CLICK & DRAG TO EXAMINE
             </div>
+          </div>
 
-            {/* Detail banner — bottom center, appears on click */}
+          {/* Detached description readout — nested directly BELOW the canvas frame */}
+          <div
+            className={`mt-4 transition-all duration-300 ease-out will-change-[transform,opacity] ${
+              activeSpot
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 -translate-y-1 pointer-events-none"
+            }`}
+            aria-live="polite"
+          >
             <div
-              className={`absolute left-1/2 -translate-x-1/2 bottom-4 z-30 w-[92%] max-w-[520px] transition-all duration-300 ease-out will-change-[transform,opacity] ${
-                activeSpot
-                  ? "opacity-100 translate-y-0 pointer-events-auto"
-                  : "opacity-0 translate-y-3 pointer-events-none"
-              }`}
+              className="bg-obsidian/95 px-4 py-3 flex items-start gap-3"
+              style={{
+                border: "1px solid var(--gold)",
+                outline: "1px solid var(--bone)",
+                outlineOffset: "2px",
+                boxShadow: "4px 4px 0 0 rgba(0,0,0,0.9)",
+              }}
             >
-              <div
-                className="bg-obsidian/95 px-4 py-3 flex items-center gap-3"
-                style={{
-                  border: "1px solid var(--gold)",
-                  outline: "1px solid var(--bone)",
-                  outlineOffset: "2px",
-                  boxShadow: "4px 4px 0 0 rgba(0,0,0,0.9)",
-                }}
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="font-mono text-[9px] uppercase tracking-widest text-crimson">
-                    {activeSpot?.label ?? "—"}
-                  </div>
-                  <div className="font-pixel text-[10px] leading-[1.5] text-bone mt-1">
-                    {activeSpot?.title ?? ""}
-                  </div>
-                  <div className="font-mono text-[10px] leading-relaxed text-bone/75 mt-1">
-                    {activeSpot?.body ?? ""}
-                  </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-mono text-[9px] uppercase tracking-widest text-crimson">
+                  {activeSpot?.label ?? "—"}
                 </div>
-                <button
-                  type="button"
-                  aria-label="Close details"
-                  onClick={() => {
-                    setActiveId(null);
-                    interactRef.current.locked = false;
-                  }}
-                  className="font-pixel text-[10px] text-bone hover:text-crimson w-6 h-6 flex items-center justify-center transition-colors"
-                  style={{ border: "1px solid var(--bone)" }}
-                >
-                  ×
-                </button>
+                <div className="font-pixel text-[10px] leading-[1.5] text-bone mt-1">
+                  {activeSpot?.title ?? ""}
+                </div>
+                <div className="font-mono text-[11px] leading-relaxed text-bone/80 mt-2">
+                  {activeSpot?.body ?? ""}
+                </div>
               </div>
+              <button
+                type="button"
+                aria-label="Close details"
+                onClick={() => {
+                  setActiveId(null);
+                  interactRef.current.locked = false;
+                }}
+                className="font-pixel text-[10px] text-bone hover:text-crimson w-6 h-6 flex items-center justify-center transition-colors shrink-0"
+                style={{ border: "1px solid var(--bone)" }}
+              >
+                ×
+              </button>
             </div>
           </div>
 
