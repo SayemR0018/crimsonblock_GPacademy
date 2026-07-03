@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 
 const links = [
-  { id: "artifact", label: "Artifact" },
+  { id: "artifact", label: "Hero" },
   { id: "specifications", label: "Specifications" },
+  { id: "interactive-analysis", label: "Artifact" },
   { id: "challenge", label: "Challenge" },
   { id: "acquire", label: "Acquire" },
 ];
